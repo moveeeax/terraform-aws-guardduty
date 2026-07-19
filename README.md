@@ -9,7 +9,7 @@ malware protection data sources through simple boolean inputs.
 
 ```hcl
 module "guardduty" {
-  source = "github.com/cybercapybara/terraform-aws-guardduty"
+  source = "github.com/moveeeax/terraform-aws-guardduty"
 
   enable               = true
   enable_s3_protection = true
