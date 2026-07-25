@@ -23,8 +23,10 @@ module "guardduty" {
   source = "../.."
 
   enable                       = true
-  finding_publishing_frequency = "SIX_HOURS"
+  finding_publishing_frequency = "FIFTEEN_MINUTES"
   enable_s3_protection         = true
+  enable_rds_protection        = true
+  enable_lambda_protection     = true
 
   tags = {
     Environment = "sandbox"
@@ -34,4 +36,8 @@ module "guardduty" {
 
 output "detector_id" {
   value = module.guardduty.id
+}
+
+output "features" {
+  value = module.guardduty.features
 }
