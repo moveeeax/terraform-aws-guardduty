@@ -36,12 +36,30 @@ already has one, import it before applying:
 terraform import 'module.guardduty.aws_guardduty_detector.this' <detector-id>
 ```
 
+## Notes
+
+- **Destroying this module deletes GuardDuty findings.** Per the AWS
+  provider, deleting `aws_guardduty_detector` is equivalent to disabling
+  GuardDuty for the region, which removes all existing findings. To pause
+  monitoring without losing history, set `enable = false` instead of
+  removing the module.
+- **Member accounts:** `finding_publishing_frequency` only takes effect on
+  standalone or GuardDuty administrator accounts. On a member account the
+  value is controlled by the delegated administrator and any value set here
+  is ignored by AWS, which will show up as permanent drift. This module does
+  not attempt to detect or special-case member accounts.
+
 ## Requirements
 
-| Name      | Version  |
-|-----------|----------|
-| terraform | >= 1.5   |
-| aws       | >= 5.0   |
+| Name      | Version    |
+|-----------|------------|
+| terraform | >= 1.5     |
+| aws       | >= 5.20.0  |
+
+`aws_guardduty_detector_feature`, which this module uses to manage every
+protection plan, was added in provider version 5.20.0. On an older 5.x
+provider the module passes `validate` but fails at `apply` with an "Invalid
+resource type" error.
 
 Running the test suite (`terraform test`) additionally requires Terraform or
 OpenTofu >= 1.7 for `mock_provider`. The module itself does not.

@@ -12,6 +12,13 @@ locals {
 
   # Features cannot be configured on a suspended detector; the API rejects the
   # UpdateDetector call. Skip them entirely when the detector is turned off.
+  #
+  # Removing entries here makes Terraform destroy the corresponding
+  # aws_guardduty_detector_feature resources. The AWS provider does not call
+  # any API to disable a feature on destroy (it is state-only removal), so
+  # this relies on aws_guardduty_detector.enable = false already suspending
+  # all monitoring regardless of per-feature status. Re-enabling recreates
+  # the feature resources from the then-current variable values.
   enabled_detector_features = var.enable ? local.detector_features : {}
 }
 
