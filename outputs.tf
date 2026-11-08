@@ -17,3 +17,8 @@ output "features" {
   description = "Map of managed GuardDuty protection plan names to their status (ENABLED or DISABLED). Empty when the detector is disabled."
   value       = { for name, feature in aws_guardduty_detector_feature.this : name => feature.status }
 }
+
+output "publishing_destination_id" {
+  description = "Terraform ID of the S3 publishing destination when findings_export is set, otherwise null."
+  value       = try(aws_guardduty_publishing_destination.this[0].id, null)
+}
