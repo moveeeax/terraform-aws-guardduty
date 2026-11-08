@@ -45,6 +45,25 @@ variable "enable_lambda_protection" {
   default     = true
 }
 
+variable "findings_export" {
+  description = "Export findings to an existing S3 bucket, encrypted with an existing KMS key in the same region. bucket_arn may include a prefix (arn:aws:s3:::bucket/prefix) that already exists in the bucket. Both the bucket policy and the key policy must allow GuardDuty; see README. null disables the export."
+  type = object({
+    bucket_arn  = string
+    kms_key_arn = string
+  })
+  default = null
+
+  validation {
+    condition     = var.findings_export == null ? true : can(regex("^arn:aws[a-z-]*:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9](/.*)?$", var.findings_export.bucket_arn))
+    error_message = "findings_export.bucket_arn must be an S3 bucket ARN, optionally with a prefix: arn:aws:s3:::bucket or arn:aws:s3:::bucket/prefix."
+  }
+
+  validation {
+    condition     = var.findings_export == null ? true : can(regex("^arn:aws[a-z-]*:kms:[a-z0-9-]+:[0-9]{12}:.+$", var.findings_export.kms_key_arn))
+    error_message = "findings_export.kms_key_arn must be a KMS key ARN (arn:aws:kms:<region>:<account>:key/<id>), not a bare key ID."
+  }
+}
+
 variable "tags" {
   description = "Tags applied to the detector."
   type        = map(string)

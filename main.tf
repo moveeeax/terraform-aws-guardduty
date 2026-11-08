@@ -36,3 +36,15 @@ resource "aws_guardduty_detector_feature" "this" {
   name        = each.key
   status      = each.value ? "ENABLED" : "DISABLED"
 }
+
+# Long-term retention: GuardDuty keeps findings for 90 days only. The bucket
+# and KMS key are the caller's, and their policies must allow GuardDuty
+# (see README); the module does not create or change either.
+resource "aws_guardduty_publishing_destination" "this" {
+  count = var.findings_export == null ? 0 : 1
+
+  detector_id      = aws_guardduty_detector.this.id
+  destination_type = "S3"
+  destination_arn  = var.findings_export.bucket_arn
+  kms_key_arn      = var.findings_export.kms_key_arn
+}
