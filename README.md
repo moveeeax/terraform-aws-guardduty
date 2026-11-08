@@ -148,6 +148,57 @@ In an opt-in region the AWS guide uses the regional service principal
 (for example `guardduty.me-south-1.amazonaws.com`) instead of
 `guardduty.amazonaws.com`.
 
+## Alerting on findings
+
+GuardDuty sends every finding to EventBridge on the default bus, but nothing
+sees it unless a rule routes it somewhere. Set `alert_sns_topic_arn` and the
+module adds an EventBridge rule for `GuardDuty Finding` events with
+`severity >= alert_min_severity` and a target that publishes them to the topic.
+It is off by default.
+
+```hcl
+module "guardduty" {
+  source = "github.com/moveeeax/terraform-aws-guardduty"
+
+  alert_sns_topic_arn = aws_sns_topic.guardduty_alerts.arn
+  alert_min_severity  = 7 # High (7.0-8.9) and Critical (9.0-10.0)
+}
+```
+
+`7` is the default threshold and the recommended starting point. GuardDuty
+severities run from 1.0 to 10.0: Low 1.0-3.9, Medium 4.0-6.9, High 7.0-8.9,
+Critical 9.0-10.0
+([severity levels](https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings-severity.html)).
+Updated occurrences of an existing finding are re-sent on the
+`finding_publishing_frequency` schedule, so the same finding can alert more
+than once.
+
+The topic policy has to let EventBridge publish. The module does not manage the
+topic:
+
+```hcl
+data "aws_iam_policy_document" "guardduty_alerts" {
+  statement {
+    sid       = "AllowEventBridgePublish"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.guardduty_alerts.arn]
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_sns_topic_policy" "guardduty_alerts" {
+  arn    = aws_sns_topic.guardduty_alerts.arn
+  policy = data.aws_iam_policy_document.guardduty_alerts.json
+}
+```
+
+If the topic is encrypted with a customer managed KMS key, that key's policy
+must also allow `events.amazonaws.com` to use it, or EventBridge cannot
+deliver to the topic.
+
 ## Notes
 
 - **Destroying this module deletes GuardDuty findings.** Per the AWS
@@ -188,7 +239,9 @@ OpenTofu >= 1.7 for `mock_provider`. The module itself does not.
 | `enable_rds_protection`        | Enable RDS login activity monitoring (`RDS_LOGIN_EVENTS`).| `bool`       | `true`               |    no    |
 | `enable_lambda_protection`     | Enable Lambda network activity monitoring (`LAMBDA_NETWORK_LOGS`). | `bool` | `true`               |    no    |
 | `findings_export`              | Export findings to an existing S3 bucket (`bucket_arn`, optionally with `/prefix`) encrypted with an existing KMS key (`kms_key_arn`). `null` disables the export. | `object({...})` | `null` |    no    |
-| `tags`                         | Tags applied to the detector.                            | `map(string)` | `{}`                 |    no    |
+| `alert_sns_topic_arn`          | SNS topic that receives findings at or above `alert_min_severity` through an EventBridge rule. `null` creates no rule. | `string` | `null` |    no    |
+| `alert_min_severity`           | Lowest severity forwarded to `alert_sns_topic_arn`, 1 to 10. | `number` | `7` |    no    |
+| `tags`                         | Tags applied to the detector and, when alerts are on, the EventBridge rule. | `map(string)` | `{}`                 |    no    |
 
 The RDS and Lambda defaults match what GuardDuty turns on for a newly created
 detector, so adopting this module does not silently switch them off.
@@ -202,6 +255,7 @@ detector, so adopting this module does not silently switch them off.
 | `account_id` | AWS account ID that owns the detector.                                   |
 | `features`   | Map of managed protection plan names to `ENABLED` / `DISABLED`. Empty when the detector is disabled. |
 | `publishing_destination_id` | Terraform ID of the S3 publishing destination, or `null` when `findings_export` is not set. |
+| `alert_rule_arn` | ARN of the EventBridge rule for alerts, or `null` when `alert_sns_topic_arn` is not set. |
 
 ## Development
 

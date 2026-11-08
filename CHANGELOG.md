@@ -12,6 +12,9 @@ All notable changes to this module are documented here. The format follows
   existing KMS key, through `aws_guardduty_publishing_destination`. Off by
   default. Output `publishing_destination_id`. The README lists the bucket and
   key policy statements GuardDuty needs; the module creates neither.
+- `alert_sns_topic_arn` and `alert_min_severity` (default `7`) add an
+  EventBridge rule that forwards GuardDuty findings at or above the threshold to
+  an SNS topic. Off by default. Output `alert_rule_arn`.
 
 ## [1.1.0] - 2026-11-05
 
