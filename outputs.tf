@@ -22,3 +22,8 @@ output "publishing_destination_id" {
   description = "Terraform ID of the S3 publishing destination when findings_export is set, otherwise null."
   value       = try(aws_guardduty_publishing_destination.this[0].id, null)
 }
+
+output "alert_rule_arn" {
+  description = "ARN of the EventBridge rule that forwards findings to alert_sns_topic_arn, otherwise null."
+  value       = try(aws_cloudwatch_event_rule.alert[0].arn, null)
+}

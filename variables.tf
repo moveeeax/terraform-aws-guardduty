@@ -64,8 +64,30 @@ variable "findings_export" {
   }
 }
 
+variable "alert_sns_topic_arn" {
+  description = "SNS topic that receives GuardDuty findings at or above alert_min_severity through an EventBridge rule. The topic policy must allow events.amazonaws.com to sns:Publish. null creates no rule."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.alert_sns_topic_arn == null ? true : can(regex("^arn:aws[a-z-]*:sns:[a-z0-9-]+:[0-9]{12}:[A-Za-z0-9_-]+(\\.fifo)?$", var.alert_sns_topic_arn))
+    error_message = "alert_sns_topic_arn must be an SNS topic ARN (arn:aws:sns:<region>:<account>:<topic>)."
+  }
+}
+
+variable "alert_min_severity" {
+  description = "Lowest finding severity forwarded to alert_sns_topic_arn. GuardDuty severities run from 1.0 to 10.0: Low 1.0-3.9, Medium 4.0-6.9, High 7.0-8.9, Critical 9.0-10.0. Only used with alert_sns_topic_arn."
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.alert_min_severity >= 1 && var.alert_min_severity <= 10
+    error_message = "alert_min_severity must be between 1 and 10."
+  }
+}
+
 variable "tags" {
-  description = "Tags applied to the detector."
+  description = "Tags applied to the detector and, when alerts are enabled, the EventBridge rule."
   type        = map(string)
   default     = {}
 }
